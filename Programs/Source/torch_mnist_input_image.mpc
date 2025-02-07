@@ -1,0 +1,63 @@
+import torch
+import torch.nn as nn
+import torchvision
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+custom = sint.Tensor([28,28])
+custom.input_from(0)
+
+#Loading the dataset 
+data = []
+for train in True, False:
+    ds = torchvision.datasets.MNIST(root='/tmp', train=train, download=True)
+    # normalize to [0,1] before input
+    print(ds)
+    print('The length of the dataset is : ', len(ds))
+    if train == True:
+        samples = sfix.input_tensor_via(0, ds.data / 255., binary=True)
+    else:
+        samples = sfix.input_tensor_via(0, ds.data[3:4] / 255., binary=True)
+    print(samples)
+    if train == True:
+        labels = sint.input_tensor_via(0, ds.targets, binary=True, one_hot=True)
+    else:
+        labels = sint.input_tensor_via(0, ds.targets[3:4], binary=True, one_hot=True)   
+    data += [(labels, samples)]
+    print(data)
+(training_labels, training_samples), (test_labels, test_samples) = data
+print_ln('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+
+
+# Define the model using nn.Sequential
+net = nn.Sequential(
+    nn.Conv2d(1, 20, 5),                # Conv layer: 1 input channel, 20 output channels, 5x5 kernel
+    nn.ReLU(),
+    nn.MaxPool2d(2),                    # Max pooling layer with 2x2 window
+    nn.Conv2d(20, 50, 5),               # Conv layer: 20 input channels, 50 output channels, 5x5 kernel
+    nn.ReLU(),
+    nn.MaxPool2d(2),                    # Max pooling layer with 2x2 window
+    nn.Flatten(),                        # Flatten the output into 1D vector
+    nn.ReLU(),
+    nn.Linear(50 * 4 * 4, 500),          # Fully connected layer (input size = 50 * 4 * 4)
+    nn.ReLU(),
+    nn.Linear(500, 10)                   # Final output layer (10 classes for MNIST)
+)
+
+# Load the trained model into the new architecture
+net.load_state_dict(torch.load('custom_cnn_mnist.pth'))
+
+# Set the model to evaluation mode
+net.eval()
+
+from Compiler import ml
+
+layers = ml.layers_from_torch(net, training_samples.shape, 128, input_via=0)
+
+ml.set_n_threads(10)
+
+optimizer = ml.Optimizer(layers)
+
+pred = optimizer.eval(custom, batch_size=1, top=True)
+
+print_ln('Predicted Label: %s', pred[0].reveal())

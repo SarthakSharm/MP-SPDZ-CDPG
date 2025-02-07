@@ -1,0 +1,38 @@
+v = Array(8,sint)
+
+@for_range(8)
+def f(i):
+    v[i] = i
+
+# The logic
+#size is size of array 
+#n is the no of columns(no of elements in each row)
+
+M = Matrix(10, 1, sfix)
+M.input_from(0)
+
+#for i in range(4):
+#  M[int(i/2)][i%2] = v[i]
+
+N = Matrix(1, 10, sfix)
+N.input_from(1)
+
+#for i in range(4):
+#  N[int(i/2)][i%2] = v[i]
+
+r = N * M
+print_ln('Output %s',r.reveal())
+
+x = r[0][0]
+x = x * -1
+from Compiler import ml 
+ans = ml.relu(x)
+print_ln('Output %s',ans.reveal())
+
+#print_ln('Output %s',v[0].reveal())
+
+#Note i/2 does not work in mp-spdz need to explicitly convert 
+#i = 3
+#k = int(i/2)
+
+#Doubt why is the program not printing.

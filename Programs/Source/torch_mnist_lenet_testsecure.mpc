@@ -1,0 +1,67 @@
+# this imports a LeNet model on MNIST in cleartext and tests it securely
+
+program.options_from_args()
+
+import torchvision
+
+data = []
+for train in True, False:
+    ds = torchvision.datasets.MNIST(root='/tmp', train=train, download=True)
+    # normalize to [0,1] before input
+    samples = sfix.input_tensor_via(0, ds.data / 255., binary=True)
+    labels = sint.input_tensor_via(0, ds.targets, binary=True, one_hot=True)
+    data += [(labels, samples)]
+
+(training_labels, training_samples), (test_labels, test_samples) = data
+
+import torch
+import torch.nn as nn
+import numpy
+import sys
+
+
+layers = [
+    nn.Conv2d(1, 20, 5),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+    nn.Conv2d(20, 50, 5),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+    nn.Flatten(),
+    nn.ReLU(),
+    nn.Linear(800, 500),
+    nn.ReLU(),
+    nn.Linear(500, 10)
+]
+
+if 'bn' in sys.argv:
+    layers.insert(3, nn.BatchNorm2d(20))
+
+net = nn.Sequential(*layers)
+
+f = open('Player-Data/Binary-Output-P0-0')
+
+state = net.state_dict()
+
+for name in state:
+    shape = state[name].shape
+    if shape:
+        size = numpy.prod(shape)
+        print (name, shape, size)
+        var = numpy.fromfile(f, 'double', count=size)
+        var = var.reshape(shape)
+        state[name] = torch.Tensor(var)
+
+net.load_state_dict(state)
+
+
+from Compiler import ml
+
+layers = ml.layers_from_torch(net, training_samples.shape, 128, input_via=0)
+
+ml.set_n_threads(8)
+
+optimizer = ml.Optimizer(layers)
+
+n_correct, loss = optimizer.reveal_correctness(test_samples, test_labels, 128, running=True)
+print_ln('Hello Secure accuracy: %s/%s', n_correct, len(test_samples))
